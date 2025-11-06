@@ -1,37 +1,41 @@
 <script setup>
-import { ref } from 'vue'
-import NewWelcome from './components/NewWelcome.vue'
-import Dashboard from './components/Dashboard.vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
-const currentView = ref('dashboard') // 'dashboard' 或 'metrics'
+// 更新时间
+const currentTime = ref('')
 
-function switchView(view) {
-  currentView.value = view
+function updateTime() {
+  currentTime.value = new Date().toLocaleString('zh-CN')
 }
+
+// 定时更新时间
+let timer
+onMounted(() => {
+  updateTime()
+  timer = setInterval(updateTime, 1000)
+})
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+})
 </script>
 
 <template>
   <div class="app-container">
-    <nav class="top-nav">
-      <button 
-        @click="switchView('dashboard')" 
-        :class="{ active: currentView === 'dashboard' }"
-        class="nav-tab"
-      >
-        📊 统计 Dashboard
-      </button>
-      <button 
-        @click="switchView('metrics')" 
-        :class="{ active: currentView === 'metrics' }"
-        class="nav-tab"
-      >
-        📈 监控详情
-      </button>
-    </nav>
+    <header class="app-header">
+      <div class="header-content">
+        <h1 class="app-title">
+          <span class="title-icon">📊</span>
+          系统监控平台
+        </h1>
+        <div class="header-info">
+          <span class="time-info">{{ currentTime }}</span>
+        </div>
+      </div>
+    </header>
 
-    <main>
-      <Dashboard v-if="currentView === 'dashboard'" />
-      <NewWelcome v-else />
+    <main class="app-main">
+      <router-view />
     </main>
   </div>
 </template>
@@ -39,51 +43,82 @@ function switchView(view) {
 <style scoped>
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 .app-container {
-  height: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  background: #f5f7fa;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.top-nav {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  background: white;
-  border-bottom: 1px solid #e8e8e8;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+.app-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
 }
 
-.nav-tab {
-  padding: 10px 20px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  color: #666;
-  transition: all 0.3s;
-}
-
-.nav-tab:hover {
-  background: #f5f5f5;
-  color: #42b883;
-}
-
-.nav-tab.active {
-  background: #42b883;
-  color: white;
-}
-
-main {
-  flex: 1;
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
   width: 100%;
-  min-height: 0;
-  overflow: hidden;
+}
+
+.app-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.title-icon {
+  font-size: 28px;
+}
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.time-info {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.app-main {
+  flex: 1;
+  padding: 24px;
+  overflow: auto;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+  
+  .app-main {
+    padding: 16px;
+  }
+  
+  .app-title {
+    font-size: 20px;
+  }
 }
 </style>
