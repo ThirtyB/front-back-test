@@ -448,7 +448,7 @@ function updateCharts() {
   }
 
   // 内存使用率饼图（包含Swap）
-  const memUsed = machine.value.mem_total - machine.value.mem_free
+  const memUsed = machine.value.mem_total - machine.value.mem_free - machine.value.mem_cache - machine.value.mem_buffer
   const swapUsed = (machine.value.swap_total || 0) - (machine.value.swap_free || 0)
   
   memoryChartOption.value = {
