@@ -29,11 +29,4 @@ export function getApiUrl(endpoint) {
   return `${config.apiPrefix}${endpoint}`
 }
 
-// 开发环境下的配置日志
-if (import.meta.env.DEV) {
-  console.log('📋 应用配置:', {
-    apiBaseUrl: config.apiBaseUrl,
-    apiPrefix: config.apiPrefix,
-    refreshInterval: config.refreshInterval
-  })
-}
+

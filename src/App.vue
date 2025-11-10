@@ -1,8 +1,13 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { getUsername, logout, isAuthenticated } from './utils/auth.js'
+
+const router = useRouter()
 
 // 更新时间
 const currentTime = ref('')
+const username = ref(getUsername())
 
 function updateTime() {
   currentTime.value = new Date().toLocaleString('zh-CN')
@@ -18,6 +23,26 @@ onMounted(() => {
 onUnmounted(() => {
   if (timer) clearInterval(timer)
 })
+
+// 计算属性：是否已登录
+const loggedIn = computed(() => isAuthenticated())
+
+// 处理登出
+function handleLogout() {
+  logout()
+  username.value = null
+  router.push('/login')
+}
+
+// 处理登录
+function handleLogin() {
+  router.push('/login')
+}
+
+// 处理注册
+function handleRegister() {
+  router.push('/register')
+}
 </script>
 
 <template>
@@ -30,6 +55,14 @@ onUnmounted(() => {
         </h1>
         <div class="header-info">
           <span class="time-info">{{ currentTime }}</span>
+          <div v-if="loggedIn" class="user-info">
+            <span class="user-name">{{ username }}</span>
+            <button @click="handleLogout" class="logout-button">登出</button>
+          </div>
+          <div v-else class="auth-buttons">
+            <button @click="handleLogin" class="login-button">登录</button>
+            <button @click="handleRegister" class="register-button">注册</button>
+          </div>
         </div>
       </div>
     </header>
@@ -95,6 +128,59 @@ onUnmounted(() => {
 .time-info {
   font-size: 14px;
   opacity: 0.9;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-name {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.logout-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.auth-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.login-button, .register-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.login-button:hover, .register-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.register-button {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .app-main {

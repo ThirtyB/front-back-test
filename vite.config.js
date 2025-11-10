@@ -25,10 +25,16 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        // 代理API前缀的请求
         [apiPrefix]: {
           target: apiBaseUrl,
           changeOrigin: true,
           rewrite: (path) => path.replace(new RegExp(`^${apiPrefix}`), ''),
+        },
+        // 代理认证相关的请求
+        '/auth': {
+          target: apiBaseUrl,
+          changeOrigin: true,
         },
       },
     },

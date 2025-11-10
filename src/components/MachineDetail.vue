@@ -17,6 +17,10 @@
           <span class="status-dot"></span>
           <span>在线</span>
         </div>
+        <button @click="goToHistory" class="history-btn">
+          <span class="history-icon">📊</span>
+          查看历史
+        </button>
         <button @click="fetchMachineDetail" :disabled="loading" class="refresh-btn">
           <span class="refresh-icon" :class="{ spinning: loading }">🔄</span>
           {{ loading ? '加载中...' : '刷新' }}
@@ -60,7 +64,11 @@
             </div>
             <div class="info-item">
               <span class="info-label">总使用率:</span>
-              <span class="info-value total-usage">{{ formatPercent(machine.cpu_usr + machine.cpu_sys + machine.cpu_iow) }}%</span>
+              <span class="info-value total-usage">{{ formatPercent(machine.cpu_total_usage) }}%</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">空闲:</span>
+              <span class="info-value">{{ formatPercent(machine.cpu_idle) }}%</span>
             </div>
           </div>
         </div>
@@ -80,12 +88,24 @@
               <span class="info-value">{{ formatBytes(machine.mem_free) }}</span>
             </div>
             <div class="info-item">
+              <span class="info-label">已使用:</span>
+              <span class="info-value">{{ formatBytes(machine.mem_used) }}</span>
+            </div>
+            <div class="info-item">
               <span class="info-label">缓存:</span>
               <span class="info-value">{{ formatBytes(machine.mem_cache) }}</span>
             </div>
             <div class="info-item">
+              <span class="info-label">缓冲区:</span>
+              <span class="info-value">{{ formatBytes(machine.mem_buffer) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">实际使用:</span>
+              <span class="info-value">{{ formatBytes(machine.mem_actual_used) }}</span>
+            </div>
+            <div class="info-item">
               <span class="info-label">使用率:</span>
-              <span class="info-value total-usage">{{ formatPercent((machine.mem_total - machine.mem_free) / machine.mem_total * 100) }}%</span>
+              <span class="info-value total-usage">{{ formatPercent(machine.mem_usage_percent) }}%</span>
             </div>
           </div>
         </div>
@@ -106,11 +126,11 @@
             </div>
             <div class="info-item">
               <span class="info-label">已使用Swap:</span>
-              <span class="info-value">{{ formatBytes((machine.swap_total || 0) - (machine.swap_free || 0)) }}</span>
+              <span class="info-value">{{ formatBytes(machine.swap_used) }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">使用率:</span>
-              <span class="info-value total-usage">{{ formatPercent(((machine.swap_total || 0) - (machine.swap_free || 0)) / (machine.swap_total || 1) * 100) }}%</span>
+              <span class="info-value total-usage">{{ formatPercent(machine.swap_usage_percent) }}%</span>
             </div>
           </div>
         </div>
@@ -156,11 +176,11 @@
             </div>
             <div class="info-item">
               <span class="info-label">接收字节:</span>
-              <span class="info-value">{{ formatBytes(machine.net_rx_kbytes * 1024) }}</span>
+              <span class="info-value">{{ formatBytes(machine.net_rx_bytes) }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">发送字节:</span>
-              <span class="info-value">{{ formatBytes(machine.net_tx_kbytes * 1024) }}</span>
+              <span class="info-value">{{ formatBytes(machine.net_tx_bytes) }}</span>
             </div>
           </div>
         </div>
@@ -262,6 +282,7 @@ import {
   GridComponent
 } from 'echarts/components'
 import VChart from 'vue-echarts'
+import { config, getApiUrl } from '../config/index.js'
 
 // 注册ECharts组件
 use([
@@ -289,71 +310,13 @@ const memoryChartOption = ref({})
 const diskChartOption = ref({})
 const networkChartOption = ref({})
 
-// API基础配置
-const API_CONFIG = {
-  baseURL: '/api', // 使用Vite代理路径
-  timeout: 10000, // 10秒超时
-  headers: {
-    'accept': 'application/json',
-    'content-type': 'application/json'
-  }
-}
+import { apiRequest } from '../utils/api.js'
 
-// 统一的API请求函数
-async function apiRequest(endpoint, options = {}) {
-  const url = `${API_CONFIG.baseURL}${endpoint}`
-  const requestOptions = {
-    method: 'GET',
-    headers: { ...API_CONFIG.headers, ...options.headers },
-    ...options
-  }
-
-  // 记录请求信息
-  console.group('🌐 API Request')
-  console.log('📤 请求地址:', url)
-  console.log('📤 请求方法:', requestOptions.method)
-  console.log('📤 请求头:', requestOptions.headers)
-  if (requestOptions.body) {
-    console.log('📤 请求数据:', requestOptions.body)
-  }
-  console.groupEnd()
-
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout)
-    
-    const response = await fetch(url, {
-      ...requestOptions,
-      signal: controller.signal
-    })
-    
-    clearTimeout(timeoutId)
-
-    // 记录响应信息
-    console.group('📥 API Response')
-    console.log('📥 响应状态:', response.status, response.statusText)
-    console.log('📥 响应头:', Object.fromEntries(response.headers.entries()))
-    
-    const responseText = await response.text()
-    console.log('📥 响应数据:', responseText)
-    console.groupEnd()
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    return JSON.parse(responseText)
-  } catch (error) {
-    console.group('❌ API Error')
-    console.error('❌ 错误类型:', error.name)
-    console.error('❌ 错误信息:', error.message)
-    console.error('❌ 错误堆栈:', error.stack)
-    console.groupEnd()
-    
-    if (error.name === 'AbortError') {
-      throw new Error('请求超时，请检查网络连接或服务器状态')
-    }
-    throw error
+// 跳转到历史页面
+function goToHistory() {
+  const ip = route.params.ip
+  if (ip) {
+    router.push(`/machine/${ip}/history`)
   }
 }
 
@@ -368,22 +331,15 @@ async function fetchMachineDetail() {
   loading.value = true
   error.value = null
   try {
-    console.group('🖥️ 获取机器详情')
-    
     const result = await apiRequest(`/monitor-metrics/ip/${ip}/complete`)
     
     if (result.code === 200) {
-      console.log('✅ 获取详情成功')
       machine.value = result.data
       updateCharts()
     } else {
-      console.error('❌ API返回错误:', result.message)
       throw new Error(result.message || '获取详情失败')
     }
-    
-    console.groupEnd()
   } catch (e) {
-    console.error('❌ 获取机器详情失败:', e)
     error.value = e.message
   } finally {
     loading.value = false
@@ -392,10 +348,7 @@ async function fetchMachineDetail() {
 
 // 更新图表数据
 function updateCharts() {
-  console.log('📊 开始更新详情页图表')
-  
   if (!machine.value.ip) {
-    console.log('📊 无机器数据，显示空图表')
     const emptyOption = {
       title: {
         text: '暂无数据',
@@ -435,7 +388,7 @@ function updateCharts() {
         { value: machine.value.cpu_usr || 0, name: '用户使用率' },
         { value: machine.value.cpu_sys || 0, name: '系统使用率' },
         { value: machine.value.cpu_iow || 0, name: 'I/O等待' },
-        { value: Math.max(0, 100 - (machine.value.cpu_usr + machine.value.cpu_sys + machine.value.cpu_iow)), name: '空闲' }
+        { value: machine.value.cpu_idle || 0, name: '空闲' }
       ],
       emphasis: {
         itemStyle: {
@@ -448,9 +401,6 @@ function updateCharts() {
   }
 
   // 内存使用率饼图（包含Swap）
-  const memUsed = machine.value.mem_total - machine.value.mem_free - machine.value.mem_cache - machine.value.mem_buffer
-  const swapUsed = (machine.value.swap_total || 0) - (machine.value.swap_free || 0)
-  
   memoryChartOption.value = {
     tooltip: {
       trigger: 'item',
@@ -478,10 +428,10 @@ function updateCharts() {
       center: ['60%', '50%'],
       roseType: 'area',
       data: [
-        { value: memUsed, name: '已使用内存' },
+        { value: machine.value.mem_actual_used || 0, name: '已使用内存' },
         { value: machine.value.mem_free || 0, name: '空闲内存' },
         { value: machine.value.mem_cache || 0, name: '缓存' },
-        { value: swapUsed, name: '已使用Swap' },
+        { value: machine.value.swap_used || 0, name: '已使用Swap' },
         { value: machine.value.swap_free || 0, name: '空闲Swap' }
       ],
       emphasis: {
@@ -586,8 +536,6 @@ function updateCharts() {
       }
     }]
   }
-  
-  console.log('📊 详情页图表更新完成')
 }
 
 // 格式化函数
@@ -715,6 +663,30 @@ onMounted(() => {
   background: #52c41a;
   border-radius: 50%;
   animation: pulse 2s infinite;
+}
+
+.history-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.history-btn:hover {
+  background: #096dd9;
+  transform: translateY(-1px);
+}
+
+.history-icon {
+  font-size: 16px;
 }
 
 .refresh-btn {

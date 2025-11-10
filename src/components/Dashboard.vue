@@ -187,6 +187,7 @@ import {
   GridComponent
 } from 'echarts/components'
 import VChart from 'vue-echarts'
+import { config, getApiUrl } from '../config/index.js'
 
 // 注册ECharts组件
 use([
@@ -209,96 +210,23 @@ const cpuChartOption = ref({})
 const memoryChartOption = ref({})
 const diskChartOption = ref({})
 
-// API基础配置
-const API_CONFIG = {
-  baseURL: '/api', // 使用Vite代理路径
-  timeout: 10000, // 10秒超时
-  headers: {
-    'accept': 'application/json',
-    'content-type': 'application/json'
-  }
-}
-
-// 统一的API请求函数
-async function apiRequest(endpoint, options = {}) {
-  const url = `${API_CONFIG.baseURL}${endpoint}`
-  const requestOptions = {
-    method: 'GET',
-    headers: { ...API_CONFIG.headers, ...options.headers },
-    ...options
-  }
-
-  // 记录请求信息
-  console.group('🌐 API Request')
-  console.log('📤 请求地址:', url)
-  console.log('📤 请求方法:', requestOptions.method)
-  console.log('📤 请求头:', requestOptions.headers)
-  if (requestOptions.body) {
-    console.log('📤 请求数据:', requestOptions.body)
-  }
-  console.groupEnd()
-
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout)
-    
-    const response = await fetch(url, {
-      ...requestOptions,
-      signal: controller.signal
-    })
-    
-    clearTimeout(timeoutId)
-
-    // 记录响应信息
-    console.group('📥 API Response')
-    console.log('📥 响应状态:', response.status, response.statusText)
-    console.log('📥 响应头:', Object.fromEntries(response.headers.entries()))
-    
-    const responseText = await response.text()
-    console.log('📥 响应数据:', responseText)
-    console.groupEnd()
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    return JSON.parse(responseText)
-  } catch (error) {
-    console.group('❌ API Error')
-    console.error('❌ 错误类型:', error.name)
-    console.error('❌ 错误信息:', error.message)
-    console.error('❌ 错误堆栈:', error.stack)
-    console.groupEnd()
-    
-    if (error.name === 'AbortError') {
-      throw new Error('请求超时，请检查网络连接或服务器状态')
-    }
-    throw error
-  }
-}
+import { apiRequest } from '../utils/api.js'
 
 // 获取活跃机器数据
 async function fetchActiveMachines() {
   loading.value = true
   error.value = null
   try {
-    console.group('🖥️ 获取活跃机器数据')
-    
     const result = await apiRequest('/monitor-metrics/active-machines?time_window_hours=1')
     
     if (result.code === 200) {
-      console.log('✅ 获取数据成功，机器数量:', result.data.length)
       machines.value = result.data
       // 数据获取成功后立即更新图表
       updateCharts()
     } else {
-      console.error('❌ API返回错误:', result.message)
       throw new Error(result.message || '获取数据失败')
     }
-    
-    console.groupEnd()
   } catch (e) {
-    console.error('❌ 获取活跃机器数据失败:', e)
     error.value = e.message
     // 出错时也更新图表（显示空状态）
     updateCharts()
@@ -340,10 +268,7 @@ function getUsageClass(usage) {
 
 // 更新图表数据
 function updateCharts() {
-  console.log('📊 开始更新图表数据，机器数量:', machines.value.length)
-  
   if (machines.value.length === 0) {
-    console.log('📊 无数据，显示空图表')
     // 无数据时的默认图表
     const emptyOption = {
       title: {
@@ -367,31 +292,18 @@ function updateCharts() {
 
   // 准备图表数据
   const ips = machines.value.map(m => m.ip)
-  console.log('📊 机器IP列表:', ips)
-  
-  // 检查数据字段，确保字段名称正确
-  const firstMachine = machines.value[0]
-  console.log('📊 第一台机器数据:', firstMachine)
   
   const cpuData = machines.value.map(m => {
-    const value = m.cpu_usage_percent || m.cpu_usage || 0
-    console.log(`📊 CPU数据 - IP: ${m.ip}, 值: ${value}`)
-    return value
+    return m.cpu_usage_percent || m.cpu_usage || 0
   })
   
   const memoryData = machines.value.map(m => {
-    const value = m.memory_usage_percent || m.memory_usage || 0
-    console.log(`📊 内存数据 - IP: ${m.ip}, 值: ${value}`)
-    return value
+    return m.memory_usage_percent || m.memory_usage || 0
   })
   
   const diskData = machines.value.map(m => {
-    const value = m.disk_usage_percent || m.disk_usage || 0
-    console.log(`📊 磁盘数据 - IP: ${m.ip}, 值: ${value}`)
-    return value
+    return m.disk_usage_percent || m.disk_usage || 0
   })
-
-  console.log('📊 数据准备完成:', { cpuData, memoryData, diskData })
 
   // 基础图表配置 - 修复水平条形图配置
   const baseOption = {
@@ -409,8 +321,7 @@ function updateCharts() {
       left: '10%',
       right: '5%',
       bottom: '10%',
-      top: '10%',
-      containLabel: true
+      top: '10%'
     },
     xAxis: {
       type: 'value',
@@ -498,13 +409,10 @@ function updateCharts() {
       }
     }]
   }
-  
-  console.log('📊 图表更新完成')
 }
 
 // 跳转到机器详情页
 function goToMachineDetail(ip) {
-  console.log('🖱️ 点击机器卡片，跳转到详情页:', ip)
   router.push(`/machine/${ip}`)
 }
 
