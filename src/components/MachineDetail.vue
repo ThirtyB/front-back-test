@@ -310,7 +310,7 @@ const memoryChartOption = ref({})
 const diskChartOption = ref({})
 const networkChartOption = ref({})
 
-import { apiRequest } from '../utils/api.js'
+import { getLatestCompleteMetricsByIp } from '../utils/api.js'
 
 // 跳转到历史页面
 function goToHistory() {
@@ -331,7 +331,7 @@ async function fetchMachineDetail() {
   loading.value = true
   error.value = null
   try {
-    const result = await apiRequest(`/monitor-metrics/ip/${ip}/complete`)
+    const result = await getLatestCompleteMetricsByIp(ip)
     
     if (result.code === 200) {
       machine.value = result.data

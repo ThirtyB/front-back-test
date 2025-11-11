@@ -299,7 +299,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as echarts from 'echarts'
-import { getMachineHistory } from '../utils/api.js'
+import { getLatestTenCompleteMetricsByIp } from '../utils/api.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -337,8 +337,8 @@ async function fetchHistoryData() {
   error.value = null
 
   try {
-    const result = await getMachineHistory(ip)
-    if (result.code === 200 && result.status === 'success') {
+    const result = await getLatestTenCompleteMetricsByIp(ip)
+    if (result.code === 200) {
       historyData.value = result.data
       // 数据加载完成后初始化图表
       setTimeout(initCharts, 100)

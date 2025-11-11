@@ -210,14 +210,14 @@ const cpuChartOption = ref({})
 const memoryChartOption = ref({})
 const diskChartOption = ref({})
 
-import { apiRequest } from '../utils/api.js'
+import { getActiveMachinesLatestMetrics } from '../utils/api.js'
 
 // 获取活跃机器数据
 async function fetchActiveMachines() {
   loading.value = true
   error.value = null
   try {
-    const result = await apiRequest('/monitor-metrics/active-machines?time_window_hours=1')
+    const result = await getActiveMachinesLatestMetrics(1)
     
     if (result.code === 200) {
       machines.value = result.data

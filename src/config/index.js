@@ -15,8 +15,45 @@ export const config = {
   
   // API 端点
   endpoints: {
-    statistics: '/monitor-metrics/statistics',
-    latest: '/monitor-metrics/latest'
+    // 认证相关
+    auth: {
+      register: '/auth/register',
+      login: '/auth/login',
+      me: '/auth/me',
+      profile: '/auth/profile',
+      refresh: '/auth/refresh'
+    },
+    
+    // 监控指标相关
+    monitor: {
+      latest: '/monitor-metrics/latest',
+      byIp: '/monitor-metrics/ip/{ip}',
+      latestByIp: '/monitor-metrics/ip/{ip}/latest',
+      timeRange: '/monitor-metrics/time-range',
+      paginated: '/monitor-metrics/paginated',
+      ips: '/monitor-metrics/ips',
+      statistics: '/monitor-metrics/statistics',
+      highCpu: '/monitor-metrics/high-cpu',
+      highMemory: '/monitor-metrics/high-memory',
+      activeMachines: '/monitor-metrics/active-machines',
+      completeByIp: '/monitor-metrics/ip/{ip}/complete',
+      latestTenByIp: '/monitor-metrics/ip/{ip}/latest-ten'
+    },
+    
+    // 用户管理（管理员功能）
+    users: {
+      getUser: '/users/{user_id}',
+      createUser: '/users/create',
+      changeUser: '/users/change',
+      deleteUser: '/users/delete',
+      allUsers: '/admin/users'
+    },
+    
+    // 缓存管理（管理员功能）
+    cache: {
+      stats: '/cache/stats',
+      clear: '/cache/clear'
+    }
   }
 }
 
