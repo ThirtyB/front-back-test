@@ -13,6 +13,10 @@
         </h1>
       </div>
       <div class="header-right">
+        <button @click="goToOverview" class="overview-btn">
+          <span class="overview-icon">📊</span>
+          返回总览
+        </button>
         <div class="status-badge">
           <span class="status-dot"></span>
           <span>在线</span>
@@ -318,6 +322,11 @@ function goToHistory() {
   if (ip) {
     router.push(`/machine/${ip}/history`)
   }
+}
+
+// 跳转到总览页面
+function goToOverview() {
+  router.push('/')
 }
 
 // 获取机器详情
@@ -663,6 +672,30 @@ onMounted(() => {
   background: #52c41a;
   border-radius: 50%;
   animation: pulse 2s infinite;
+}
+
+.overview-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #52c41a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.overview-btn:hover {
+  background: #389e0d;
+  transform: translateY(-1px);
+}
+
+.overview-icon {
+  font-size: 16px;
 }
 
 .history-btn {
