@@ -3,8 +3,7 @@ import { withAuthHeaders } from './auth.js'
 
 // API基础配置
 const API_CONFIG = {
-  baseURL: config.apiPrefix, // 使用配置文件中的API前缀
-  fullBaseURL: config.apiBaseUrl, // 完整的后端地址
+  baseURL: config.apiPrefix, // 使用配置文件中的API前缀（代理路径）
   timeout: 10000, // 10秒超时
   headers: {
     'Content-Type': 'application/json'
@@ -20,7 +19,6 @@ const API_CONFIG = {
 export async function apiRequest(endpoint, options = {}) {
   // 所有API请求都通过Vite代理，使用相对路径
   const url = `${API_CONFIG.baseURL}${endpoint}`
-  const fullUrl = `${API_CONFIG.fullBaseURL}${endpoint}`
   
   // 为需要认证的请求添加认证头（排除认证相关的端点）
   const requiresAuth = !endpoint.startsWith('/auth/')
@@ -32,11 +30,9 @@ export async function apiRequest(endpoint, options = {}) {
     ...options
   }
 
-  // 记录后端访问信息
-  console.log('🌐 访问后端:', {
+  // 记录代理访问信息
+  console.log('🌐 代理访问:', {
     proxy: url,
-    backend: fullUrl,
-    host: new URL(API_CONFIG.fullBaseURL).host,
     method: requestOptions.method,
     headers: requestOptions.headers,
     body: requestOptions.body,
@@ -71,7 +67,6 @@ export async function apiRequest(endpoint, options = {}) {
     console.log('📥 后端响应:', {
       status: response.status,
       statusText: response.statusText,
-      host: new URL(API_CONFIG.fullBaseURL).host,
       headers: Object.fromEntries(response.headers.entries()),
       length: responseText.length + ' 字符',
       content: responseContent,
@@ -91,12 +86,11 @@ export async function apiRequest(endpoint, options = {}) {
     console.error('❌ 后端访问错误:', {
       type: error.name,
       message: error.message,
-      host: new URL(API_CONFIG.fullBaseURL).host,
       url: url
     })
     
     if (error.name === 'AbortError') {
-      throw new Error(`请求超时，请检查网络连接或服务器状态 (后端主机: ${new URL(API_CONFIG.fullBaseURL).host})`)
+      throw new Error('请求超时，请检查网络连接或服务器状态')
     }
     throw error
   }
