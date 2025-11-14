@@ -295,6 +295,15 @@ export async function getLatestTenCompleteMetricsByIp(ip) {
   return await apiRequest(endpoint)
 }
 
+/**
+ * 获取系统总体概览信息
+ * @param {number} timeWindowHours - 时间窗口（小时），默认1
+ * @returns {Promise} 系统概览信息
+ */
+export async function getSystemOverview(timeWindowHours = 1) {
+  return await apiRequest(`${config.endpoints.monitor.systemOverview}?time_window_hours=${timeWindowHours}`)
+}
+
 // ==================== 用户管理 API（管理员功能） ====================
 
 /**

@@ -37,7 +37,8 @@ export const config = {
       highMemory: '/monitor-metrics/high-memory',
       activeMachines: '/monitor-metrics/active-machines',
       completeByIp: '/monitor-metrics/ip/{ip}/complete',
-      latestTenByIp: '/monitor-metrics/ip/{ip}/latest-ten'
+      latestTenByIp: '/monitor-metrics/ip/{ip}/latest-ten',
+      systemOverview: '/monitor-metrics/system-overview'
     },
     
     // 用户管理（管理员功能）

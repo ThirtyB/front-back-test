@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import Overview from '../components/Overview.vue'
 import Dashboard from '../components/Dashboard.vue'
 import MachineDetail from '../components/MachineDetail.vue'
 import MachineHistory from '../components/MachineHistory.vue'
@@ -9,6 +10,12 @@ import { isAuthenticated } from '../utils/auth.js'
 const routes = [
   {
     path: '/',
+    name: 'Overview',
+    component: Overview,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard',
     name: 'Dashboard',
     component: Dashboard,
     meta: { requiresAuth: true }
