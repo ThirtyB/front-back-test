@@ -54,6 +54,11 @@ export const config = {
     cache: {
       stats: '/cache/stats',
       clear: '/cache/clear'
+    },
+    
+    // 健康度配置
+    health: {
+      config: '/health/config'
     }
   }
 }

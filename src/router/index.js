@@ -5,6 +5,7 @@ import MachineDetail from '../components/MachineDetail.vue'
 import MachineHistory from '../components/MachineHistory.vue'
 import Login from '../components/Login.vue'
 import Register from '../components/Register.vue'
+import HealthConfig from '../components/HealthConfig.vue'
 import { isAuthenticated } from '../utils/auth.js'
 
 const routes = [
@@ -43,6 +44,12 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: Register
+  },
+  {
+    path: '/health-config',
+    name: 'HealthConfig',
+    component: HealthConfig,
+    meta: { requiresAuth: true }
   }
 ]
 

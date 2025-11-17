@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getUsername, logout, isAuthenticated } from './utils/auth.js'
+import Sidebar from './components/Sidebar.vue'
 
 const router = useRouter()
 
@@ -27,10 +28,20 @@ onUnmounted(() => {
 // 计算属性：是否已登录
 const loggedIn = computed(() => isAuthenticated())
 
+// 监听登录状态变化，自动更新用户名
+watch(loggedIn, (newVal) => {
+  if (newVal) {
+    // 登录状态变为true时，重新获取用户名
+    username.value = getUsername()
+  } else {
+    // 登出时清空用户名
+    username.value = null
+  }
+})
+
 // 处理登出
 function handleLogout() {
   logout()
-  username.value = null
   router.push('/login')
 }
 
@@ -67,9 +78,12 @@ function handleRegister() {
       </div>
     </header>
 
-    <main class="app-main">
-      <router-view />
-    </main>
+    <div class="app-body">
+      <Sidebar v-if="loggedIn" />
+      <main class="app-main">
+        <router-view />
+      </main>
+    </div>
   </div>
 </template>
 
@@ -183,13 +197,27 @@ function handleRegister() {
   background: rgba(255, 255, 255, 0.1);
 }
 
+.app-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
 .app-main {
   flex: 1;
   padding: 24px;
   overflow: auto;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
+  background: #f5f7fa;
+}
+
+@media (max-width: 768px) {
+  .app-body {
+    flex-direction: column;
+  }
+  
+  .app-main {
+    padding: 16px;
+  }
 }
 
 @media (max-width: 768px) {

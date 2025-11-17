@@ -13,10 +13,6 @@
         </h1>
       </div>
       <div class="header-right">
-        <button @click="goToOverview" class="overview-btn">
-          <span class="overview-icon">📊</span>
-          返回总览
-        </button>
         <div class="status-badge">
           <span class="status-dot"></span>
           <span>在线</span>
@@ -324,10 +320,7 @@ function goToHistory() {
   }
 }
 
-// 跳转到总览页面
-function goToOverview() {
-  router.push('/')
-}
+
 
 // 获取机器详情
 async function fetchMachineDetail() {

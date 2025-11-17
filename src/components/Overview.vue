@@ -7,22 +7,11 @@
         系统监控总览
       </h1>
       <div class="header-actions">
-        <div class="time-window">
-          <span class="time-label">时间窗口:</span>
-          <select v-model="timeWindow" @change="fetchSystemOverview" class="time-select">
-            <option value="1">1小时</option>
-            <option value="6">6小时</option>
-            <option value="24">24小时</option>
-          </select>
-        </div>
         <button @click="fetchSystemOverview" :disabled="loading" class="refresh-btn">
           <span class="refresh-icon" :class="{ spinning: loading }">🔄</span>
           {{ loading ? '加载中...' : '刷新' }}
         </button>
-        <button @click="goToDashboard" class="detail-btn">
-          <span class="detail-icon">🖥️</span>
-          查看机器详情
-        </button>
+
       </div>
     </div>
 
@@ -47,55 +36,71 @@
             <span class="health-icon">❤️</span>
             <span class="health-title">系统健康状态</span>
           </div>
-          <div class="health-content">
-            <!-- 左侧：健康分数和雷达图 -->
-            <div class="health-left">
-              <div class="health-score">
-                <div class="score-circle">
-                  <span class="score-value">{{ overviewData.health_status.overall_score }}</span>
-                  <span class="score-label">健康分</span>
-                </div>
-                <div class="health-percentage">
-                  <span class="percentage-value">{{ overviewData.health_status.health_percentage }}%</span>
-                  <span class="percentage-label">健康率</span>
-                </div>
-              </div>
-              
-              <!-- 五维健康度雷达图 -->
+          <div class="health-row">
+            <!-- 中间：健康分雷达图 -->
+            <div class="health-middle">
               <div class="health-radar">
-                <h4>五维健康度分析</h4>
-                <VChart :option="healthRadarOption" class="radar-chart" />
+                <h4>系统健康分</h4>
+                <div class="radar-container">
+                  <VChart :option="healthRadarOption" class="radar-chart" />
+                  <div class="health-score-overlay">
+                    <span class="overlay-score">{{ overviewData.health_status.overall_score }}</span>
+                    <span class="overlay-label">健康分</span>
+                  </div>
+                </div>
+                <div class="health-rate-info">
+                  <div class="health-rate-item">
+                    <span class="rate-label">健康率</span>
+                    <span class="rate-value">{{ formatPercent(overviewData.health_status.health_percentage) }}</span>
+                  </div>
+                </div>
               </div>
             </div>
             
-            <!-- 右侧：机器状态分布和告警信息 -->
+            <!-- 右侧：五维健康度具体数值 -->
             <div class="health-right">
-              <div class="health-distribution">
-                <h4>机器状态分布</h4>
-                <div class="distribution-grid">
-                  <div v-for="(count, status) in overviewData.health_status.distribution" :key="status" class="distribution-item">
-                    <span class="status-label">{{ status }}</span>
-                    <span class="status-count">{{ count }}</span>
+              <div class="dimension-scores-section">
+                <h4>五维健康度分析</h4>
+                <div class="dimension-scores">
+                  <div 
+                    v-for="(score, dimension) in getDimensionScores()" 
+                    :key="dimension"
+                    :class="['dimension-item', { 'lowest-score': score.isLowest }]"
+                  >
+                    <div class="dimension-info">
+                      <span class="dimension-label">{{ score.label }}</span>
+                      <span class="dimension-value">{{ score.value }}分</span>
+                    </div>
                   </div>
                 </div>
               </div>
-              
-              <!-- 告警提示信息 -->
+            </div>
+            
+            <!-- 下方：告警提示信息 -->
+            <div class="health-bottom">
               <div class="health-alerts">
                 <h4>告警提示</h4>
                 <div class="alerts-summary">
-                  <div class="alert-item critical">
-                    <span class="alert-count">{{ overviewData.alerts_summary.critical_issues }}</span>
-                    <span class="alert-label">严重问题</span>
+                  <div class="alert-row">
+                    <div class="alert-item critical">
+                      <span class="alert-count">{{ overviewData.alerts_summary.critical_issues }}</span>
+                      <span class="alert-label">严重问题</span>
+                    </div>
+                    <div class="alert-item warning">
+                      <span class="alert-count">{{ overviewData.alerts_summary.warning_issues }}</span>
+                      <span class="alert-label">警告问题</span>
+                    </div>
                   </div>
-                  <div class="alert-item warning">
-                    <span class="alert-count">{{ overviewData.alerts_summary.warning_issues }}</span>
-                    <span class="alert-label">警告问题</span>
-                  </div>
+                </div>
+                
+                <div v-if="overviewData.alerts_summary.critical_issues === 0 && overviewData.alerts_summary.warning_issues === 0" class="no-alerts">
+                  <span class="no-alerts-icon">✅</span>
+                  <span>暂无告警</span>
                 </div>
                 
                 <!-- 详细告警信息 -->
                 <div v-if="overviewData.detailed_alerts && (overviewData.detailed_alerts.critical.length > 0 || overviewData.detailed_alerts.warning.length > 0)" class="detailed-alerts">
+                  <h4 class="detailed-alerts-title">详细告警</h4>
                   <div class="alerts-list">
                     <!-- 严重告警 -->
                     <div v-if="overviewData.detailed_alerts.critical.length > 0" class="alert-type critical">
@@ -118,109 +123,13 @@
                     </div>
                   </div>
                 </div>
-                
-                <div v-if="overviewData.alerts_summary.critical_issues === 0 && overviewData.alerts_summary.warning_issues === 0" class="no-alerts">
-                  <span class="no-alerts-icon">✅</span>
-                  <span>暂无告警</span>
-                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 关键指标雷达图 -->
-      <div class="metrics-section">
-        <h2 class="section-title">关键性能指标雷达图</h2>
-        <div class="radar-chart-container">
-          <VChart :option="radarChartOption" class="radar-chart" />
-        </div>
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-icon">💻</span>
-              <span class="metric-title">CPU使用率</span>
-            </div>
-            <div class="metric-values">
-              <div class="metric-value">
-                <span class="value-label">最高:</span>
-                <span class="value-number">{{ formatPercent(overviewData.key_metrics.cpu_usage.max) }}</span>
-              </div>
-              <div class="metric-value">
-                <span class="value-label">平均:</span>
-                <span class="value-number">{{ formatPercent(overviewData.key_metrics.cpu_usage.avg) }}</span>
-              </div>
-              <div class="metric-value">
-                <span class="value-label">最低:</span>
-                <span class="value-number">{{ formatPercent(overviewData.key_metrics.cpu_usage.min) }}</span>
-              </div>
-            </div>
-          </div>
 
-          <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-icon">🧠</span>
-              <span class="metric-title">内存使用率</span>
-            </div>
-            <div class="metric-values">
-              <div class="metric-value">
-                <span class="value-label">最高:</span>
-                <span class="value-number">{{ formatPercent(overviewData.key_metrics.memory_usage.max) }}</span>
-              </div>
-              <div class="metric-value">
-                <span class="value-label">平均:</span>
-                <span class="value-number">{{ formatPercent(overviewData.key_metrics.memory_usage.avg) }}</span>
-              </div>
-              <div class="metric-value">
-                <span class="value-label">最低:</span>
-                <span class="value-number">{{ formatPercent(overviewData.key_metrics.memory_usage.min) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-icon">💾</span>
-              <span class="metric-title">磁盘使用率</span>
-            </div>
-            <div class="metric-values">
-              <div class="metric-value">
-                <span class="value-label">最高:</span>
-                <span class="value-number">{{ formatPercent(overviewData.key_metrics.disk_usage.max) }}</span>
-              </div>
-              <div class="metric-value">
-                <span class="value-label">平均:</span>
-                <span class="value-number">{{ formatPercent(overviewData.key_metrics.disk_usage.avg) }}</span>
-              </div>
-              <div class="metric-value">
-                <span class="value-label">最低:</span>
-                <span class="value-number">{{ formatPercent(overviewData.key_metrics.disk_usage.min) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-icon">🔄</span>
-              <span class="metric-title">Swap使用率</span>
-            </div>
-            <div class="metric-values">
-              <div class="metric-value">
-                <span class="value-label">最高:</span>
-                <span class="value-number">{{ formatPercent(overviewData.key_metrics.swap_usage.max) }}</span>
-              </div>
-              <div class="metric-value">
-                <span class="value-label">平均:</span>
-                <span class="value-number">{{ formatPercent(overviewData.key_metrics.swap_usage.avg) }}</span>
-              </div>
-              <div class="metric-value">
-                <span class="value-label">最低:</span>
-                <span class="value-number">{{ formatPercent(overviewData.key_metrics.swap_usage.min) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- 活跃机器和告警信息 -->
       <div class="info-section">
@@ -387,46 +296,46 @@ function updateHealthRadarChart() {
   }
 
   const scores = overviewData.value.health_status.five_dimension_scores
+  const dimensionNames = ['CPU健康度', '内存健康度', 'Swap健康度', '磁盘健康度', '网络健康度']
   
   healthRadarOption.value = {
     tooltip: {
       trigger: 'item',
       formatter: function(params) {
-        return `${params.name}: ${params.value}分`
+        return `${dimensionNames[params.dataIndex]}: ${params.value}分`
       }
     },
     radar: {
       indicator: [
-        { name: 'CPU健康度', max: 100 },
-        { name: '内存健康度', max: 100 },
-        { name: 'Swap健康度', max: 100 },
-        { name: '磁盘健康度', max: 100 },
-        { name: '网络健康度', max: 100 }
+        { name: '', max: 100 },
+        { name: '', max: 100 },
+        { name: '', max: 100 },
+        { name: '', max: 100 },
+        { name: '', max: 100 }
       ],
       shape: 'circle',
       splitNumber: 5,
       axisName: {
-        color: '#666',
-        fontSize: 10
+        show: false
       },
       splitLine: {
         lineStyle: {
-          color: ['rgba(82, 196, 26, 0.1)', 'rgba(82, 196, 26, 0.2)', 
-                 'rgba(82, 196, 26, 0.4)', 'rgba(82, 196, 26, 0.6)', 
-                 'rgba(82, 196, 26, 0.8)']
+          color: ['rgba(238, 197, 102, 0.1)', 'rgba(238, 197, 102, 0.2)', 
+                 'rgba(238, 197, 102, 0.4)', 'rgba(238, 197, 102, 0.6)', 
+                 'rgba(238, 197, 102, 0.8)']
         }
       },
       splitArea: {
         show: true,
         areaStyle: {
-          color: ['rgba(82, 196, 26, 0.1)', 'rgba(82, 196, 26, 0.2)', 
-                 'rgba(82, 196, 26, 0.4)', 'rgba(82, 196, 26, 0.6)', 
-                 'rgba(82, 196, 26, 0.8)']
+          color: ['rgba(238, 197, 102, 0.1)', 'rgba(238, 197, 102, 0.2)', 
+                 'rgba(238, 197, 102, 0.4)', 'rgba(238, 197, 102, 0.6)', 
+                 'rgba(238, 197, 102, 0.8)']
         }
       },
       axisLine: {
         lineStyle: {
-          color: 'rgba(82, 196, 26, 0.5)'
+          color: 'rgba(238, 197, 102, 0.5)'
         }
       }
     },
@@ -443,14 +352,14 @@ function updateHealthRadarChart() {
         ],
         name: '健康度',
         areaStyle: {
-          color: 'rgba(82, 196, 26, 0.4)'
+          color: 'rgba(255, 144, 128, 0.6)'
         },
         lineStyle: {
-          color: 'rgba(82, 196, 26, 0.8)',
+          color: 'rgba(255, 144, 128, 0.8)',
           width: 2
         },
         itemStyle: {
-          color: 'rgba(82, 196, 26, 1)'
+          color: 'rgba(255, 144, 128, 1)'
         }
       }]
     }]
@@ -599,14 +508,46 @@ function getTrendText(trend) {
   }
 }
 
+// 获取五维健康度具体数值
+function getDimensionScores() {
+  if (!overviewData.value || !overviewData.value.health_status || !overviewData.value.health_status.five_dimension_scores) {
+    return []
+  }
+  
+  const scores = overviewData.value.health_status.five_dimension_scores
+  const dimensions = [
+    { key: 'cpu_score', label: 'CPU健康度', value: scores.cpu_score || 0 },
+    { key: 'memory_score', label: '内存健康度', value: scores.memory_score || 0 },
+    { key: 'swap_score', label: 'Swap健康度', value: scores.swap_score || 0 },
+    { key: 'disk_score', label: '磁盘健康度', value: scores.disk_score || 0 },
+    { key: 'network_score', label: '网络健康度', value: scores.network_score || 0 }
+  ]
+  
+  // 找出最低分
+  const minScore = Math.min(...dimensions.map(d => d.value))
+  
+  // 标记最低分项
+  return dimensions.map(dimension => ({
+    ...dimension,
+    isLowest: dimension.value === minScore && minScore < 100
+  }))
+}
+
+// 获取维度图标
+function getDimensionIcon(key) {
+  const icons = {
+    'cpu_score': '💻',
+    'memory_score': '🧠',
+    'swap_score': '🔄',
+    'disk_score': '💾',
+    'network_score': '🌐'
+  }
+  return icons[key] || '📊'
+}
+
 // 跳转到机器详情页
 function goToMachineDetail(ip) {
   router.push(`/machine/${ip}`)
-}
-
-// 跳转到Dashboard页面
-function goToDashboard() {
-  router.push('/dashboard')
 }
 
 onMounted(() => {
@@ -778,36 +719,50 @@ onMounted(() => {
   color: #1a1a1a;
 }
 
-.health-content {
+.health-row {
   display: flex;
-  gap: 40px;
-  align-items: flex-start;
+  gap: 20px;
+  align-items: stretch;
+  justify-content: flex-start;
+  margin-bottom: 20px;
 }
 
-.health-left {
+.health-middle {
+  flex: 0 0 220px;
   display: flex;
   flex-direction: column;
-  gap: 30px;
-  flex: 1;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
 }
 
 .health-right {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 30px;
-  flex: 1;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  min-width: 350px;
 }
 
-.health-score {
+.health-bottom {
+  width: 100%;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.health-score-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .score-circle {
-  width: 120px;
-  height: 120px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   background: linear-gradient(135deg, #52c41a, #73d13d);
   display: flex;
@@ -818,12 +773,12 @@ onMounted(() => {
 }
 
 .score-value {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
 }
 
 .score-label {
-  font-size: 14px;
+  font-size: 12px;
   opacity: 0.9;
 }
 
@@ -832,21 +787,21 @@ onMounted(() => {
 }
 
 .percentage-value {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   color: #52c41a;
 }
 
 .percentage-label {
   display: block;
-  font-size: 14px;
+  font-size: 12px;
   color: #666;
 }
 
 .health-radar {
   background: #f8f9fa;
   border-radius: 8px;
-  padding: 16px;
+  padding: 6px;
 }
 
 .health-radar h4 {
@@ -858,7 +813,136 @@ onMounted(() => {
 
 .health-radar .radar-chart {
   width: 100%;
-  height: 250px;
+  height: 280px;
+}
+
+/* 雷达图容器和覆盖层样式 */
+.radar-container {
+  position: relative;
+  width: 100%;
+  height: 280px;
+}
+
+.health-score-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 10;
+}
+
+.overlay-score {
+  display: block;
+  font-size: 32px;
+  font-weight: 700;
+  color: #52c41a;
+  line-height: 1;
+}
+
+.overlay-label {
+  display: block;
+  font-size: 14px;
+  color: #666;
+  margin-top: 4px;
+}
+
+/* 健康率信息样式 */
+.health-rate-info {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.health-rate-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.rate-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.rate-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #52c41a;
+}
+
+/* 五维健康度具体数值样式 */
+.dimension-scores-section h4 {
+  margin: 0 0 16px 0;
+  color: #1a1a1a;
+  font-size: 16px;
+  text-align: center;
+}
+
+.dimension-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dimension-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  transition: all 0.3s;
+}
+
+.dimension-item:hover {
+  background: #f8f9fa;
+  border-color: #d9d9d9;
+}
+
+.dimension-item.lowest-score {
+  background: #fff2f0;
+  border-color: #ffccc7;
+  color: #cf1322;
+}
+
+.dimension-icon {
+  font-size: 20px;
+  width: 24px;
+  text-align: center;
+}
+
+.dimension-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.dimension-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+}
+
+.dimension-item.lowest-score .dimension-label {
+  color: #cf1322;
+  font-weight: 600;
+}
+
+.dimension-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.dimension-item.lowest-score .dimension-value {
+  color: #cf1322;
 }
 
 .health-alerts {
@@ -1089,8 +1173,14 @@ onMounted(() => {
 
 .alert-summary {
   display: flex;
+  justify-content: center;
+}
+
+.alert-row {
+  display: flex;
   gap: 20px;
   justify-content: center;
+  width: 100%;
 }
 
 .alert-item {
@@ -1100,6 +1190,7 @@ onMounted(() => {
   padding: 16px;
   border-radius: 8px;
   min-width: 100px;
+  flex: 1;
 }
 
 .alert-item.critical {

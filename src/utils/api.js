@@ -380,3 +380,29 @@ export async function clearCache(pattern = '*') {
     method: 'POST'
   })
 }
+
+// ==================== 健康度配置 API ====================
+
+/**
+ * 获取健康度配置
+ * @returns {Promise} 健康度配置信息
+ */
+export async function getHealthConfig() {
+  return await apiRequest(config.endpoints.health.config)
+}
+
+/**
+ * 更新健康度配置
+ * @param {string} configKey - 配置键
+ * @param {any} configValue - 配置值
+ * @returns {Promise} 更新结果
+ */
+export async function updateHealthConfig(configKey, configValue) {
+  return await apiRequest(config.endpoints.health.config, {
+    method: 'PUT',
+    body: JSON.stringify({
+      config_key: configKey,
+      config_value: configValue
+    })
+  })
+}

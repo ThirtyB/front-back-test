@@ -2,10 +2,12 @@
   <div class="dashboard">
     <!-- 页面头部 -->
     <div class="dashboard-header">
-      <h1 class="dashboard-title">
-        <span class="title-icon">🖥️</span>
-        活跃机器监控
-      </h1>
+      <div class="header-left">
+        <h1 class="dashboard-title">
+          <span class="title-icon">🖥️</span>
+          活跃机器监控
+        </h1>
+      </div>
       <div class="header-actions">
         <div class="machine-count">
           <span class="count-badge">{{ machines.length }}</span>
@@ -416,6 +418,8 @@ function goToMachineDetail(ip) {
   router.push(`/machine/${ip}`)
 }
 
+
+
 // 监听机器数据变化，自动更新图表
 watch(machines, () => {
   updateCharts()
@@ -442,6 +446,34 @@ onMounted(() => {
   align-items: center;
   padding: 0 0 16px 0;
   border-bottom: 1px solid #e8e8e8;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f0f2f5;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.back-btn:hover {
+  background: #e6f7ff;
+  border-color: #40a9ff;
+}
+
+.back-icon {
+  font-size: 16px;
 }
 
 .dashboard-title {
